@@ -36,6 +36,10 @@
   --ok-bg: #e3f1e8;
   --ok-fg: #1c6b3a;
   --favorite: #b4530a;
+  --danger: #b42318;
+  --danger-bg: #b42318;
+  --danger-hover: #912018;
+  --danger-soft: #fdecea;
 
   --radius: 10px;
   --radius-card: 14px;
@@ -58,6 +62,8 @@
   --btn-dark-bg: #f2f4f8;
   --btn-dark-fg: #0e1116;
   --code-bg: #1a1f27;
+  --danger: #ff9c92;
+  --danger-soft: #3a1714;
   --focus: 0 0 0 3px rgb(143 176 255 / 55%);
 
   color-scheme: dark;
@@ -156,7 +162,7 @@ app-root {
   min-height: 100dvh;
 }
 
-app-root > :not(router-outlet, app-toast, a) {
+app-root > :not(router-outlet, app-toast, app-confirm-dialog, a) {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
@@ -263,6 +269,26 @@ app-root > :not(router-outlet, app-toast, a) {
 .btn-icon {
   width: 44px;
   padding: 0;
+}
+
+.btn-danger {
+  background: var(--danger-bg);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: var(--danger-hover);
+    color: #fff;
+  }
+}
+
+/* Text-only destructive action, e.g. a menu item or an icon button. */
+.btn-ghost-danger {
+  color: var(--danger);
+
+  &:hover:not(:disabled) {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
 }
 
 .btn-success {

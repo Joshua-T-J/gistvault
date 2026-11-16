@@ -3,17 +3,20 @@ import {
   DOCUMENT,
   ElementRef,
   afterRenderEffect,
+  computed,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { AUTH_STRATEGY } from '../../../core/auth/auth-strategy';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { SessionService } from '../../../core/auth/session.service';
 import { describeError, isGitHubError } from '../../../core/github/github-errors';
 import { SeoService } from '../../../core/seo/seo.service';
 import { SyncService } from '../../../core/storage/sync.service';
 import { Command } from '../../../core/storage/vault.models';
+import { ConfirmService } from '../../../shared/confirm-dialog/confirm.service';
 import { Icon } from '../../../shared/icon/icon';
 import { SiteFooter } from '../../../shared/site-footer/site-footer';
 import { ToastService } from '../../../shared/toast/toast.service';
@@ -51,7 +54,14 @@ export default class VaultPage {
   protected readonly sync = inject(SyncService);
   protected readonly auth = inject(AuthStore);
   readonly #session = inject(SessionService);
+  readonly #strategy = inject(AUTH_STRATEGY);
+
+  /** Reads a signal inside the strategy, so templates update if the sign-in method changes. */
+  protected get signedInWithGitHub(): boolean {
+    return this.#strategy.kind === 'bff';
+  }
   readonly #toast = inject(ToastService);
+  readonly #confirm = inject(ConfirmService);
   readonly #router = inject(Router);
   readonly #doc = inject(DOCUMENT);
 
@@ -63,6 +73,20 @@ export default class VaultPage {
   protected readonly mainEl = viewChild.required<ElementRef<HTMLElement>>('main');
 
   protected readonly copiedId = signal<string | null>(null);
+
+  /** Bulk delete: selection mode and the chosen command IDs. */
+  protected readonly selecting = signal(false);
+  readonly #selectedIds = signal<ReadonlySet<string>>(new Set());
+  /** Only IDs that still exist (another device may have deleted some). */
+  protected readonly selected = computed(() => {
+    const ids = this.#selectedIds();
+    return this.store.commands().filter((c) => ids.has(c.id));
+  });
+  protected readonly allShownSelected = computed(() => {
+    const shown = this.store.filtered();
+    const ids = this.#selectedIds();
+    return shown.length > 0 && shown.every((c) => ids.has(c.id));
+  });
   protected readonly loadError = signal<string | null>(null);
   #copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -117,14 +141,95 @@ export default class VaultPage {
     await this.#router.navigateByUrl('/app/connect');
   }
 
-  protected async signOut(): Promise<void> {
-    await this.#session.logout();
-    this.#toast.show('Signed out. You can revoke the token on GitHub any time.');
+  protected async signOut(revoke = false): Promise<void> {
+    if (
+      revoke &&
+      !(await this.#confirm.confirm({
+        title: 'Remove GistVault’s access?',
+        message:
+          'This signs you out and revokes GistVault’s authorization on GitHub. Your vault gist stays in your account. Next time you sign in, GitHub will ask you to approve GistVault again.',
+        confirmLabel: 'Remove access',
+        tone: 'danger',
+      }))
+    ) {
+      return;
+    }
+    const viaGitHub = this.signedInWithGitHub;
+    await this.#session.logout({ revoke });
+    this.#toast.show(
+      revoke
+        ? 'Signed out and removed GistVault’s access to your GitHub account.'
+        : viaGitHub
+          ? 'Signed out.'
+          : 'Signed out. You can revoke the token on GitHub any time.',
+    );
     await this.#router.navigateByUrl('/');
   }
 
   protected openEditor(command?: Command): void {
     this.editor().open(command);
+  }
+
+  protected async deleteCommand(command: Command): Promise<void> {
+    const confirmed = await this.#confirm.confirm({
+      title: 'Delete this command?',
+      message: `“${command.title}” will be removed from your vault. GitHub keeps earlier versions in the gist’s history.`,
+      confirmLabel: 'Delete command',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    this.store.remove(command.id);
+    this.#toast.show(`Deleted “${command.title}”`);
+  }
+
+  protected startSelecting(): void {
+    this.#selectedIds.set(new Set());
+    this.selecting.set(true);
+  }
+
+  protected stopSelecting(): void {
+    this.selecting.set(false);
+    this.#selectedIds.set(new Set());
+  }
+
+  protected isSelected(id: string): boolean {
+    return this.#selectedIds().has(id);
+  }
+
+  protected setSelected(id: string, on: boolean): void {
+    this.#selectedIds.update((ids) => {
+      const next = new Set(ids);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  /** Selects or clears every command currently shown (respecting search and filters). */
+  protected toggleAllShown(event: Event): void {
+    const on = (event.target as HTMLInputElement).checked;
+    const shown = this.store.filtered().map((c) => c.id);
+    this.#selectedIds.update((ids) => {
+      const next = new Set(ids);
+      shown.forEach((id) => (on ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  }
+
+  protected async deleteSelected(): Promise<void> {
+    const doomed = this.selected();
+    if (!doomed.length) return;
+    const one = doomed.length === 1;
+    const confirmed = await this.#confirm.confirm({
+      title: one ? 'Delete 1 command?' : `Delete ${doomed.length} commands?`,
+      message: `${one ? 'It' : 'They'} will be removed from your vault. GitHub keeps earlier versions in the gist’s history.`,
+      confirmLabel: one ? 'Delete command' : `Delete ${doomed.length} commands`,
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    const count = this.store.removeMany(doomed.map((c) => c.id));
+    this.stopSelecting();
+    this.#toast.show(`Deleted ${count} command${count === 1 ? '' : 's'}`);
   }
 
   protected onSaved(command: Command): void {
@@ -195,6 +300,9 @@ export default class VaultPage {
     if (target?.closest('input, textarea, select, [contenteditable="true"], dialog[open]')) return;
 
     switch (event.key) {
+      case 'Escape':
+        if (this.selecting()) this.stopSelecting();
+        break;
       case '/':
         event.preventDefault();
         this.header().focusSearch();

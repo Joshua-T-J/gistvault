@@ -15,7 +15,8 @@ export default class SecurityPage {
   protected readonly toc: readonly TocEntry[] = [
     { id: 'summary', label: 'Straight talk' },
     { id: 'how-it-works', label: 'How data flows' },
-    { id: 'token', label: 'Your GitHub token' },
+    { id: 'sign-in', label: 'Sign in with GitHub' },
+    { id: 'token', label: 'Personal access tokens' },
     { id: 'secret-check', label: 'The secret check' },
     { id: 'input', label: 'Input validation' },
     { id: 'sync', label: 'Saving and sync' },
@@ -45,7 +46,7 @@ export default class SecurityPage {
     inject(SeoService).set({
       title: 'Security model · GistVault',
       description:
-        'How GistVault protects your commands and GitHub token: direct-to-GitHub requests, in-memory tokens, a pre-save secret check, strict CSP, and honest limits.',
+        'How GistVault protects your commands and GitHub token: sealed HttpOnly sign-in cookies, an allowlisted proxy, a pre-save secret check, strict CSP, and honest limits.',
       path: '/security',
     });
   }

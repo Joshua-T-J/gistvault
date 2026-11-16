@@ -27,7 +27,7 @@ export default class PrivacyPage {
     inject(SeoService).set({
       title: 'Privacy policy · GistVault',
       description:
-        'GistVault has no server and no database. Your commands live in a secret gist on your GitHub account. Here is exactly what is stored, where, and for how long.',
+        'GistVault has no database. Your commands live in a secret gist on your GitHub account. Here is exactly what is stored, where, and for how long.',
       path: '/privacy',
     });
   }

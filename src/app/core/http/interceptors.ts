@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, from, retry, switchMap, tap, throwError, timer } from 'rxjs';
-import { AUTH_STRATEGY } from '../auth/auth-strategy';
+import { AUTH_STRATEGY, AuthKind } from '../auth/auth-strategy';
 import { AuthStore } from '../auth/auth.store';
 import { GitHubError } from '../github/github-errors';
 import { GITHUB_API_VERSION, SKIP_API_HEADERS, isGitHubApi } from './github-api';
@@ -30,19 +30,32 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const withAuth = () =>
     req.clone({ setHeaders: auth.authHeaders(), withCredentials: auth.withCredentials });
 
+  // Any 401 gets one refresh-and-retry: the token may have expired, or another tab may have
+  // just rotated it. A second 401 means the session really is over.
   return next(withAuth()).pipe(
     catchError((err: unknown) => {
-      if (!(err instanceof HttpErrorResponse) || err.status !== 401) return throwError(() => err);
+      if (!isUnauthorized(err)) return throwError(() => err);
       return from(auth.tryRefresh()).pipe(
         switchMap((refreshed) => {
-          if (refreshed) return next(withAuth());
-          store.markExpired();
-          return throwError(() => err);
+          if (!refreshed) {
+            store.markExpired();
+            return throwError(() => err);
+          }
+          return next(withAuth()).pipe(
+            catchError((retryErr: unknown) => {
+              if (isUnauthorized(retryErr)) store.markExpired();
+              return throwError(() => retryErr);
+            }),
+          );
         }),
       );
     }),
   );
 };
+
+function isUnauthorized(err: unknown): boolean {
+  return err instanceof HttpErrorResponse && err.status === 401;
+}
 
 export const rateLimitInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AUTH_STRATEGY);
@@ -79,16 +92,25 @@ export const rateLimitInterceptor: HttpInterceptorFn = (req, next) => {
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AUTH_STRATEGY);
   if (!isGitHubApi(req.url, auth.apiBase)) return next(req);
-  return next(req).pipe(catchError((err: unknown) => throwError(() => toGitHubError(err))));
+  return next(req).pipe(
+    catchError((err: unknown) => throwError(() => toGitHubError(err, auth.kind))),
+  );
 };
 
-export function toGitHubError(err: unknown): unknown {
+export function toGitHubError(err: unknown, authKind: AuthKind = 'pat'): unknown {
   if (!(err instanceof HttpErrorResponse)) return err;
   const { status, headers } = err;
 
   if (status === 304) return err;
   if (status === 401) {
-    return new GitHubError('token-invalid', status, 'Your token expired or was revoked.');
+    const message =
+      authKind === 'bff'
+        ? 'Your GitHub session ended. Please sign in again.'
+        : 'Your token expired or was revoked.';
+    return new GitHubError('token-invalid', status, message);
+  }
+  if (status === 413) {
+    return new GitHubError('too-large', status, 'This change is too big to save (4 MB limit).');
   }
   if (status === 403 && headers.get('x-ratelimit-remaining') === '0') {
     const reset = Number(headers.get('x-ratelimit-reset'));

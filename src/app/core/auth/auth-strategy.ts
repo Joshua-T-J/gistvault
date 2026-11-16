@@ -3,16 +3,21 @@ import { InjectionToken } from '@angular/core';
 export type RememberMode = 'memory' | 'session';
 
 export interface LoginInput {
+  /** Personal access token (Advanced path). Omit to use Sign in with GitHub. */
   token?: string;
   remember?: RememberMode;
+  /** Sign in with GitHub only: where to land afterwards (a path under /app, /c/ or /explore). */
+  returnTo?: string;
 }
 
 /**
  * The migration seam between Option A (personal access token) and Option B (BFF cookie).
  * Nothing outside `core/auth` should depend on which strategy is active.
  */
+export type AuthKind = 'pat' | 'bff';
+
 export interface AuthStrategy {
-  readonly kind: 'pat' | 'bff';
+  readonly kind: AuthKind;
   readonly apiBase: string;
   readonly withCredentials: boolean;
   authHeaders(): Record<string, string>;

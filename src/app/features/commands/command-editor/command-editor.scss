@@ -8,8 +8,8 @@
   flex: 1;
 }
 
-select.input {
-  min-width: 160px;
+app-select {
+  min-width: 180px;
 }
 
 .has-secret {
@@ -47,14 +47,6 @@ select.input {
 
 .shortcut {
   margin-right: auto;
-}
-
-.danger {
-  color: #b42318;
-}
-
-:host-context(.dark) .danger {
-  color: #ff9c92;
 }
 
 @media (max-width: 640px) {

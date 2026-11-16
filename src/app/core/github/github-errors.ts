@@ -5,6 +5,7 @@ export type GitHubErrorKind =
   | 'missing-permission'
   | 'not-found'
   | 'conflict'
+  | 'too-large'
   | 'transient';
 
 /** Typed error produced by `errorInterceptor` for every failed GitHub request. */

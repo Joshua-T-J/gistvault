@@ -6,8 +6,22 @@ import { Icon } from '../../../shared/icon/icon';
   selector: 'app-command-card',
   imports: [Icon],
   template: `
-    <article class="card command" [attr.aria-labelledby]="titleId()">
+    <article
+      class="card command"
+      [class.selected]="selectable() && selected()"
+      [attr.aria-labelledby]="titleId()"
+    >
       <div class="top">
+        @if (selectable()) {
+          <label class="pick">
+            <input
+              type="checkbox"
+              [checked]="selected()"
+              (change)="onSelect($event)"
+              [attr.aria-label]="'Select ' + command().title"
+            />
+          </label>
+        }
         <h2 [id]="titleId()">{{ command().title }}</h2>
         <div class="actions">
           <button
@@ -27,6 +41,14 @@ import { Icon } from '../../../shared/icon/icon';
             (click)="edit.emit()"
           >
             <app-icon name="edit" />
+          </button>
+          <button
+            type="button"
+            class="btn btn-icon btn-ghost-danger"
+            [attr.aria-label]="'Delete ' + command().title"
+            (click)="remove.emit()"
+          >
+            <app-icon name="trash" />
           </button>
           <button
             type="button"
@@ -67,6 +89,27 @@ import { Icon } from '../../../shared/icon/icon';
       display: grid;
       gap: 12px;
       padding: 16px 18px;
+    }
+    .command.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .pick {
+      display: inline-flex;
+      flex: none;
+      width: 44px;
+      height: 44px;
+      align-items: center;
+      justify-content: center;
+      margin: -6px 0 -6px -10px;
+      cursor: pointer;
+    }
+    .pick input {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+      accent-color: var(--accent-bg);
+      cursor: pointer;
     }
     .top {
       display: flex;
@@ -134,8 +177,18 @@ export class CommandCard {
   readonly copy = output<void>();
   readonly edit = output<void>();
   readonly toggleFavorite = output<void>();
+  readonly remove = output<void>();
+
+  /** Selection mode for bulk delete: shows a checkbox on the card. */
+  readonly selectable = input(false);
+  readonly selected = input(false);
+  readonly selectedChange = output<boolean>();
 
   protected readonly titleId = computed(() => `cmd-${this.command().id}`);
+
+  protected onSelect(event: Event): void {
+    this.selectedChange.emit((event.target as HTMLInputElement).checked);
+  }
   protected readonly placeholderCount = computed(() => this.command().placeholders?.length ?? 0);
   protected readonly copyLabel = computed(() => {
     if (this.copied()) return 'Copied';

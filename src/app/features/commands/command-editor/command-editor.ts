@@ -9,7 +9,9 @@ import {
 } from '../../../core/security/input-safety';
 import { replaceSecrets, scanForSecrets } from '../../../core/security/secret-scanner';
 import { Command, SHELLS, Shell } from '../../../core/storage/vault.models';
+import { ConfirmService } from '../../../shared/confirm-dialog/confirm.service';
 import { Icon } from '../../../shared/icon/icon';
+import { Select, SelectOption } from '../../../shared/select/select';
 import { CommandStore, parseTags } from '../command.store';
 
 interface EditorModel {
@@ -39,7 +41,7 @@ const SHELL_LABELS: Record<Shell, string> = {
 /** "New command" / "Edit command" modal with the pre-save secret check. */
 @Component({
   selector: 'app-command-editor',
-  imports: [FormField, Icon],
+  imports: [FormField, Icon, Select],
   templateUrl: './command-editor.html',
   styleUrl: './command-editor.scss',
   host: {
@@ -49,6 +51,7 @@ const SHELL_LABELS: Record<Shell, string> = {
 })
 export class CommandEditor {
   readonly #store = inject(CommandStore);
+  readonly #confirm = inject(ConfirmService);
   protected readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   protected readonly commandInput =
     viewChild.required<ElementRef<HTMLTextAreaElement>>('commandInput');
@@ -56,9 +59,11 @@ export class CommandEditor {
   readonly saved = output<Command>();
   readonly closed = output<void>();
 
-  protected readonly shells = SHELLS.map((value) => ({ value, label: SHELL_LABELS[value] }));
+  protected readonly shells: readonly SelectOption<Shell>[] = SHELLS.map((value) => ({
+    value,
+    label: SHELL_LABELS[value],
+  }));
   protected readonly editingId = signal<string | null>(null);
-  protected readonly confirmDelete = signal(false);
 
   protected readonly model = signal<EditorModel>({ ...EMPTY });
   protected readonly editor = form(this.model, (path) => {
@@ -124,7 +129,6 @@ export class CommandEditor {
 
   open(command?: Command): void {
     this.editingId.set(command?.id ?? null);
-    this.confirmDelete.set(false);
     this.model.set(
       command
         ? {
@@ -176,13 +180,16 @@ export class CommandEditor {
     });
   }
 
-  protected remove(): void {
+  protected async remove(): Promise<void> {
     const id = this.editingId();
     if (!id) return;
-    if (!this.confirmDelete()) {
-      this.confirmDelete.set(true);
-      return;
-    }
+    const confirmed = await this.#confirm.confirm({
+      title: 'Delete this command?',
+      message: `“${this.model().title || 'Untitled'}” will be removed from your vault. GitHub keeps earlier versions in the gist’s history.`,
+      confirmLabel: 'Delete command',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.#store.remove(id);
     this.close();
   }

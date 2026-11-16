@@ -60,14 +60,14 @@ export default class HomePage {
 
   protected readonly faqs: readonly Faq[] = [
     {
-      question: 'What can the token access?',
+      question: 'What can GistVault access?',
       answer:
-        'A token with Gists access can read, create, edit and delete all of your gists — GitHub can’t limit it to one. GistVault only ever writes to its own vault gist. Choose “No repositories”, Gists read and write, and an expiry of 90 days or less.',
+        'Your gists, and nothing else. Gist access covers all of your gists — GitHub can’t limit it to one — but GistVault only ever writes to its own vault gist. It can’t see your repositories or email address.',
     },
     {
-      question: 'Why do I paste the token again after a reload?',
+      question: 'Do I need a personal access token?',
       answer:
-        'By default the token is kept only in this tab’s memory, so a script can’t find it later in storage. You can tick “Remember for this tab” to keep it until the tab closes.',
+        'No. Sign in with GitHub is the easiest way. A token is an Advanced option for people who want their browser to talk to GitHub directly, with nothing passing through our sign-in function.',
     },
     {
       question: 'What happens if I edit on two devices?',
@@ -77,7 +77,7 @@ export default class HomePage {
     {
       question: 'Does it cost anything?',
       answer:
-        'No. GistVault is free and open source, and your data lives in your own GitHub account. There is no server to pay for.',
+        'No. GistVault is free and open source, and your data lives in your own GitHub account. There is no database to pay for.',
     },
   ];
 
@@ -85,7 +85,7 @@ export default class HomePage {
     inject(SeoService).set({
       title: 'GistVault — save the commands you look up twice',
       description:
-        'Free, open-source command vault. Save, tag and copy shell commands in a secret gist on your own GitHub account. No server, no database.',
+        'Free, open-source command vault. Save, tag and copy shell commands in a secret gist on your own GitHub account. No database, no tracking.',
       path: '/',
       jsonLd: {
         '@context': 'https://schema.org',

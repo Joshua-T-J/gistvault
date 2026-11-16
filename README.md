@@ -3,8 +3,10 @@
 > Save the shell commands you look up twice — in a secret gist on your own GitHub account.
 
 GistVault is a free, open-source web app for storing, tagging, searching and copying CLI commands
-(git, docker, kubectl, anything). There is **no server and no database**: your commands live in one
-secret gist that belongs to you, and your browser talks to GitHub directly.
+(git, docker, kubectl, anything). There is **no database**: your commands live in one secret gist
+that belongs to you. Sign in with GitHub goes through one small Vercel function that keeps your
+token in an encrypted HttpOnly cookie and never stores your commands; with a personal access token
+(Advanced) your browser talks to GitHub directly.
 
 - **Your data, your account** — one secret gist, readable as plain JSON.
 - **Placeholders** — write `{{host}}` once, fill it in when you copy. Values are never saved.
@@ -25,8 +27,15 @@ npm install
 npm start          # http://localhost:4200
 ```
 
-To use the app you need a GitHub token with **Gists: Read and write** access only (fine-grained,
-no repositories, 90-day expiry recommended). The Connect wizard in the app walks you through it.
+`npm start` serves the app; the Connect page then offers the personal access token path (a token
+with **Gists: Read and write** only). To try **Sign in with GitHub** locally, also run the function:
+
+```bash
+cp .env.example .env.local   # then fill in a GitHub App's client ID and secret
+npm run dev:api              # http://localhost:3001, proxied from :4200/api
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for registering the GitHub App.
 
 ## Scripts
 
@@ -34,13 +43,16 @@ no repositories, 90-day expiry recommended). The Connect wizard in the app walks
 |---|---|
 | `npm start` | Dev server with live reload |
 | `npm run build` | Production build into `dist/gistvault/browser`, plus licence files |
-| `npm test` | Security check, then unit tests (Vitest) |
-| `npm run check:security` | Fails on unsafe HTML APIs or hidden Unicode characters in `src/` |
+| `npm test` | Security check, then the app's unit tests (Vitest) |
+| `npm run test:api` | Type-checks and unit-tests the Vercel function in `api/` |
+| `npm run dev:api` | Runs the function locally for Sign in with GitHub (reads `.env.local`) |
+| `npm run check:security` | Fails on unsafe HTML APIs or hidden Unicode characters in `src/` and `api/` |
 | `npm run format` | Format source files with Prettier |
 
 ## Project structure
 
 ```
+api/               the Vercel function: index.ts + _lib/ (sign-in, sealed cookies, GitHub proxy)
 src/app/
 ├── core/          auth, GitHub API + interceptors, vault storage and sync, secret scanner, SEO
 ├── features/
@@ -58,7 +70,8 @@ components, signals, `input()`/`output()`, native control flow, Signal Forms, an
 
 ## Deploying
 
-GistVault is a static site and deploys free on Vercel's Hobby plan straight from this repository.
+GistVault is a static site plus one Vercel function, and deploys free on Vercel's Hobby plan
+straight from this repository.
 **See [DEPLOYMENT.md](DEPLOYMENT.md) for the step-by-step guide**, including custom domains,
 verification checks, rollbacks and troubleshooting.
 

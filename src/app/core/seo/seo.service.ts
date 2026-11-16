@@ -11,11 +11,27 @@ export interface SeoPage {
   jsonLd?: object;
 }
 
+/** Name allowed by the `trusted-types` directive of the Content Security Policy (vercel.json). */
+export const JSON_LD_POLICY = 'gistvault-jsonld';
+
+interface ScriptPolicy {
+  createScript(input: string): unknown;
+}
+
+interface TrustedTypesFactory {
+  createPolicy(name: string, rules: { createScript(input: string): string }): ScriptPolicy;
+}
+
 @Service()
 export class SeoService {
   readonly #title = inject(Title);
   readonly #meta = inject(Meta);
   readonly #doc = inject(DOCUMENT);
+  /**
+   * The CSP requires Trusted Types for script text. This policy only accepts valid JSON, so it
+   * can carry structured data but never executable code.
+   */
+  readonly #jsonLdPolicy = createJsonLdPolicy(this.#doc.defaultView);
 
   set(page: SeoPage): void {
     const url = `${SITE_URL}${page.path}`;
@@ -67,6 +83,19 @@ export class SeoService {
       el.type = 'application/ld+json';
       this.#doc.head.appendChild(el);
     }
-    el.textContent = JSON.stringify(data).replace(/</g, '\\u003c');
+    const json = JSON.stringify(data).replace(/</g, '\\u003c');
+    // A TrustedScript is accepted wherever the DOM expects script text.
+    el.textContent = (this.#jsonLdPolicy?.createScript(json) ?? json) as string;
   }
+}
+
+function createJsonLdPolicy(win: Window | null): ScriptPolicy | null {
+  const factory = (win as (Window & { trustedTypes?: TrustedTypesFactory }) | null)?.trustedTypes;
+  if (!factory) return null;
+  return factory.createPolicy(JSON_LD_POLICY, {
+    createScript: (input: string) => {
+      JSON.parse(input);
+      return input;
+    },
+  });
 }

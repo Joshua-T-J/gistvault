@@ -20,7 +20,7 @@ import { ThemePicker } from '../../../shared/theme-picker/theme-picker';
       </nav>
       <app-theme-picker [compact]="true" />
       <a routerLink="/app/connect" class="btn btn-dark connect">
-        <app-github-mark /> <span class="connect-label">Connect GitHub</span>
+        <app-github-mark /> <span class="connect-label">Sign in</span>
       </a>
     </header>
   `,

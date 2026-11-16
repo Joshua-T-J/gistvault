@@ -227,3 +227,45 @@ h1 {
     padding: 22px;
   }
 }
+
+.signin {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.signin-button {
+  justify-self: start;
+  gap: 10px;
+}
+
+.signin-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  color: var(--muted);
+}
+
+.advanced {
+  margin-top: 28px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+
+  > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  > p {
+    margin-top: 8px;
+  }
+
+  > .btn {
+    margin-top: 16px;
+  }
+}

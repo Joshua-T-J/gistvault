@@ -1,84 +1,128 @@
-<app-vault-header (newCommand)="openEditor()" (signOut)="signOut()" />
+<app-vault-header (newCommand)="openEditor()" (signOut)="signOut($event.revoke)" />
 
 <div class="layout">
   <app-tag-sidebar
     class="sidebar"
     (importClicked)="chooseImport()"
     (exportClicked)="exportJson()"
-    (shortcutsClicked)="shortcuts().open()"
-  />
+    (shortcutsClicked)="shortcuts().open()" />
 
   <main #main id="main" class="content">
     @if (auth.expired()) {
-      <div class="callout callout-error banner" role="alert">
-        <app-icon name="warning" [size]="20" />
-        <p>Your token expired or was revoked.</p>
-        <button type="button" class="btn btn-dark" (click)="reconnect()">Re-connect</button>
-      </div>
+    <div class="callout callout-error banner" role="alert">
+      <app-icon name="warning" [size]="20" />
+      <p>
+        @if (signedInWithGitHub) {
+        Your GitHub session ended.
+        } @else {
+        Your token expired or was revoked.
+        }
+      </p>
+      <button type="button" class="btn btn-dark" (click)="reconnect()">
+        {{ signedInWithGitHub ? 'Sign in again' : 'Re-connect' }}
+      </button>
+    </div>
     } @else if (loadError(); as message) {
-      <div class="callout callout-error banner" role="alert">
-        <app-icon name="warning" [size]="20" />
-        <p>{{ message }}</p>
-        <button type="button" class="btn btn-dark" (click)="retry()">Retry</button>
-      </div>
+    <div class="callout callout-error banner" role="alert">
+      <app-icon name="warning" [size]="20" />
+      <p>{{ message }}</p>
+      <button type="button" class="btn btn-dark" (click)="retry()">Retry</button>
+    </div>
     } @else if (sync.error(); as message) {
-      <div class="callout callout-warning banner" role="alert">
-        <app-icon name="warning" [size]="20" />
-        <p>{{ message }}</p>
-      </div>
+    <div class="callout callout-warning banner" role="alert">
+      <app-icon name="warning" [size]="20" />
+      <p>{{ message }}</p>
+    </div>
     }
 
     <div class="list-head">
       <h1>{{ store.listTitle() }}</h1>
-      <p class="count" aria-live="polite">
-        {{ store.filtered().length }} {{ store.filtered().length === 1 ? 'command' : 'commands' }}
-      </p>
+      <div class="head-end">
+        <p class="count" aria-live="polite">
+          {{ store.filtered().length }} {{ store.filtered().length === 1 ? 'command' : 'commands' }}
+        </p>
+        @if (store.commands().length && store.filtered().length && !selecting()) {
+        <button type="button" class="btn btn-outline" (click)="startSelecting()">
+          <app-icon name="check" [size]="16" /> Select
+        </button>
+        }
+      </div>
     </div>
 
+    @if (selecting()) {
+    <div class="bulk card" role="region" aria-label="Select commands">
+      <label class="checkbox select-all">
+        <input
+          type="checkbox"
+          [checked]="allShownSelected()"
+          [disabled]="!store.filtered().length"
+          (change)="toggleAllShown($event)" />
+        <span>Select all shown</span>
+      </label>
+      <p class="bulk-count" aria-live="polite">{{ selected().length }} selected</p>
+      <button
+        type="button"
+        class="btn btn-danger"
+        [disabled]="!selected().length"
+        (click)="deleteSelected()">
+        <app-icon name="trash" [size]="16" /> Delete selected
+      </button>
+      <button type="button" class="btn btn-ghost" (click)="stopSelecting()">Done</button>
+    </div>
+    }
+
     @if (!sync.loaded() && !loadError()) {
-      <ul class="list" aria-label="Loading commands" aria-busy="true">
-        @for (i of [1, 2, 3]; track i) {
-          <li class="card skeleton"></li>
-        }
-      </ul>
+    <ul class="list" aria-label="Loading commands" aria-busy="true">
+      @for (i of [1, 2, 3]; track i) {
+      <li class="card skeleton"></li>
+      }
+    </ul>
     } @else if (store.commands().length === 0) {
-      <div class="empty">
-        <h2>Your vault is empty.</h2>
-        <p>Add your first command, start from examples, or import a JSON file.</p>
-        <div class="empty-actions">
-          <button type="button" class="btn btn-primary" (click)="openEditor()">
-            <app-icon name="plus" [size]="16" /> Add a command
-          </button>
-          <button type="button" class="btn btn-outline" (click)="addExamples()">
-            Add examples
-          </button>
-          <button type="button" class="btn btn-outline" (click)="chooseImport()">Import</button>
-        </div>
+    <div class="empty">
+      <span class="empty-icon" aria-hidden="true"><app-icon name="terminal" [size]="36" /></span>
+      <h2>Your vault is empty.</h2>
+      <p>
+        Save the commands you keep looking up. Add your first one, start from examples for git,
+        docker and kubectl, or import a JSON file.
+      </p>
+      <div class="empty-actions">
+        <button type="button" class="btn btn-primary" (click)="openEditor()">
+          <app-icon name="plus" [size]="16" /> Add a command
+        </button>
+        <button type="button" class="btn btn-outline" (click)="addExamples()">
+          Add examples
+        </button>
+        <button type="button" class="btn btn-outline" (click)="chooseImport()">Import</button>
       </div>
+    </div>
     } @else if (store.filtered().length === 0) {
-      <div class="empty">
-        <h2>No commands match</h2>
-        <p>Try another search or tag.</p>
-        <div class="empty-actions">
-          <button type="button" class="btn btn-outline" (click)="store.clearFilters()">
-            Clear filters
-          </button>
-        </div>
+    <div class="empty">
+      <span class="empty-icon" aria-hidden="true"><app-icon name="search" [size]="36" /></span>
+      <h2>No commands match</h2>
+      <p>Try another search or tag.</p>
+      <div class="empty-actions">
+        <button type="button" class="btn btn-outline" (click)="store.clearFilters()">
+          Clear filters
+        </button>
       </div>
+    </div>
     } @else {
-      <ul class="list">
-        @for (command of store.filtered(); track command.id) {
-          <li>
-            <app-command-card
-              [command]="command"
-              [copied]="copiedId() === command.id"
-              (copy)="copy(command)"
-              (edit)="openEditor(command)"
-              (toggleFavorite)="store.toggleFavorite(command.id)"
-            />
-          </li>
-        }
-      </ul>
+    <ul class="list">
+      @for (command of store.filtered(); track command.id) {
+      <li>
+        <app-command-card
+          [command]="command"
+          [copied]="copiedId() === command.id"
+          (copy)="copy(command)"
+          (edit)="openEditor(command)"
+          (toggleFavorite)="store.toggleFavorite(command.id)"
+          (remove)="deleteCommand(command)"
+          [selectable]="selecting()"
+          [selected]="isSelected(command.id)"
+          (selectedChange)="setSelected(command.id, $event)" />
+      </li>
+      }
+    </ul>
     }
   </main>
 </div>
@@ -92,8 +136,7 @@
   class="visually-hidden"
   tabindex="-1"
   aria-hidden="true"
-  (change)="importFile($event)"
-/>
+  (change)="importFile($event)" />
 
 <app-command-editor (saved)="onSaved($event)" />
 <app-placeholder-dialog (copied)="copyFilled($event)" />

@@ -166,8 +166,16 @@ export class CommandStore {
   }
 
   remove(id: string): void {
-    this.#sync.tombstone(id);
-    this.#sync.update((list) => list.filter((c) => c.id !== id));
+    this.removeMany([id]);
+  }
+
+  /** Deletes several commands in one change, so they're saved together. */
+  removeMany(ids: Iterable<string>): number {
+    const doomed = new Set(ids);
+    if (!doomed.size) return 0;
+    doomed.forEach((id) => this.#sync.tombstone(id));
+    this.#sync.update((list) => list.filter((c) => !doomed.has(c.id)));
+    return doomed.size;
   }
 
   toggleFavorite(id: string): void {

@@ -79,7 +79,7 @@ interface Credit {
           and are covered by GistVault’s MIT License.
         </p>
         <p>
-          The GitHub mark used on “Connect GitHub” buttons comes from
+          The GitHub mark used on “Sign in with GitHub” buttons comes from
           <a href="https://github.com/primer/octicons" rel="noopener">Octicons</a> (MIT License,
           copyright GitHub Inc.) and is used unmodified, as GitHub’s logo guidelines allow, to show
           that the button connects to GitHub.

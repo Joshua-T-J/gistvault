@@ -1,5 +1,6 @@
 import { Component, ElementRef, inject, output, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AUTH_STRATEGY } from '../../../core/auth/auth-strategy';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { SyncService } from '../../../core/storage/sync.service';
 import { Icon } from '../../../shared/icon/icon';
@@ -63,7 +64,7 @@ import { CommandStore } from '../command.store';
           #menuButton
           type="button"
           class="avatar"
-          aria-label="Account menu"
+          [attr.aria-label]="auth.initials() + ' — account menu'"
           aria-haspopup="true"
           aria-controls="account-menu"
           [attr.aria-expanded]="menuOpen()"
@@ -85,9 +86,22 @@ import { CommandStore } from '../command.store';
             <a routerLink="/privacy" class="btn btn-ghost item">
               <app-icon name="eye" [size]="16" /> Privacy policy
             </a>
-            <button type="button" class="btn btn-ghost item" (click)="signOut.emit()">
+            <button
+              type="button"
+              class="btn btn-ghost item"
+              (click)="signOut.emit({ revoke: false })"
+            >
               <app-icon name="logout" [size]="16" /> Sign out
             </button>
+            @if (signedInWithGitHub) {
+              <button
+                type="button"
+                class="btn btn-ghost-danger item"
+                (click)="closeMenu(true); signOut.emit({ revoke: true })"
+              >
+                <app-icon name="x" [size]="16" /> Sign out and remove access
+              </button>
+            }
           </div>
         }
       </div>
@@ -102,7 +116,14 @@ export class VaultHeader {
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly newCommand = output<void>();
-  readonly signOut = output<void>();
+  readonly signOut = output<{ revoke: boolean }>();
+
+  readonly #strategy = inject(AUTH_STRATEGY);
+
+  /** Reads a signal inside the strategy, so the menu updates if the sign-in method changes. */
+  protected get signedInWithGitHub(): boolean {
+    return this.#strategy.kind === 'bff';
+  }
 
   protected readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('search');
   protected readonly menuButton = viewChild.required<ElementRef<HTMLButtonElement>>('menuButton');

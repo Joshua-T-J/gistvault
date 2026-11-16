@@ -1,8 +1,8 @@
 <app-doc-layout
   eyebrow="privacy"
   heading="Privacy policy"
-  lead="GistVault has no server and no database. We can’t see your commands or your token, because they never reach us. This page explains exactly what is stored, where, and for how long."
-  updated="13 November 2026"
+  lead="GistVault has no database. Your commands are saved in your own GitHub account, not with us. With Sign in with GitHub they pass through our sign-in function on the way, which never stores or logs them. This page explains exactly what is stored, where, and for how long."
+  updated="14 November 2026"
   path="/privacy"
   [toc]="toc"
 >
@@ -14,11 +14,17 @@
           Your commands are saved in <strong>one secret gist on your own GitHub account</strong>.
         </li>
         <li>
-          Your browser talks to GitHub directly. Nothing passes through a GistVault server — there
-          isn’t one.
+          With <strong>Sign in with GitHub</strong>, requests go through our sign-in function, which
+          adds your GitHub token and passes them on. It never stores or logs your commands.
         </li>
-        <li>Your token stays in this tab’s memory unless you choose to remember it for the tab.</li>
-        <li>No accounts, no cookies, no analytics or trackers inside the app.</li>
+        <li>
+          With a <strong>personal access token</strong> (Advanced), your browser talks to GitHub
+          directly and nothing passes through us.
+        </li>
+        <li>
+          One cookie, and only with Sign in with GitHub: it holds your encrypted GitHub token so you
+          stay signed in. No analytics or trackers inside the app.
+        </li>
         <li>You can export everything, delete the gist, or revoke the token at any time.</li>
       </ul>
     </div>
@@ -34,7 +40,8 @@
       </li>
       <li>
         <strong>Your GitHub token</strong> — used only to call <code>api.github.com</code> on your
-        behalf.
+        behalf. With Sign in with GitHub it is a token issued to the GistVault GitHub App, which can
+        reach only your gists, expires every 8 hours and is renewed automatically.
       </li>
       <li>
         <strong>Your public GitHub profile</strong> — your username, display name and avatar, shown
@@ -72,7 +79,23 @@
             <td>Until you delete them or the gist. GitHub keeps gist revision history.</td>
           </tr>
           <tr>
-            <td>GitHub token</td>
+            <td>GitHub token (Sign in with GitHub)</td>
+            <td>
+              An encrypted, HttpOnly cookie in your browser (<code>__Host-gv_session</code>). Our
+              function decrypts it only to make each request, and keeps no copy.
+            </td>
+            <td>
+              Until you sign out, or after 30 days without use. The token inside is replaced every 8
+              hours.
+            </td>
+          </tr>
+          <tr>
+            <td>Sign-in check (Sign in with GitHub)</td>
+            <td>An encrypted cookie during sign-in (<code>__Host-gv_oauth</code>)</td>
+            <td>Up to 10 minutes; deleted when you come back from GitHub</td>
+          </tr>
+          <tr>
+            <td>GitHub token (personal access token)</td>
             <td>This tab’s memory; optionally the tab’s session storage</td>
             <td>Until you reload, sign out, or close the tab</td>
           </tr>
@@ -95,8 +118,8 @@
       </table>
     </div>
     <p>
-      Your token is <strong>never</strong> written to local storage, which survives browser restarts
-      and is readable by any script on the page.
+      Neither kind of token is ever written to local storage, which survives browser restarts and is
+      readable by any script on the page. Page scripts can’t read the sign-in cookie either.
     </p>
   </section>
 
@@ -124,10 +147,13 @@
     <h2>What we don’t collect</h2>
     <ul class="check-list">
       <li>No GistVault accounts, emails or passwords.</li>
-      <li>No cookies.</li>
+      <li>No cookies other than the two sign-in cookies above, and none for tracking.</li>
       <li>No analytics, tracking pixels or session recording inside the app.</li>
       <li>No third-party scripts, ads or CDNs — fonts are served from our own domain.</li>
-      <li>No copies of your commands, token or profile on any server we run.</li>
+      <li>
+        No copies of your commands, token or profile stored on any server we run. Your token is kept
+        only in your own browser’s cookie.
+      </li>
     </ul>
   </section>
 
@@ -135,8 +161,9 @@
     <h2>GitHub and hosting</h2>
     <h3>GitHub</h3>
     <p>
-      Your browser sends requests straight to <code>api.github.com</code> to read and save your
-      vault. GitHub processes that data under the
+      Your vault is read and saved through <code>api.github.com</code> — straight from your browser
+      with a personal access token, or through our sign-in function with Sign in with GitHub. GitHub
+      processes that data under the
       <a
         href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
         rel="noopener"
@@ -145,10 +172,10 @@
     </p>
     <h3>Hosting</h3>
     <p>
-      The app’s files are served as static pages by our hosting provider (Vercel). Like any web
-      host, it may log standard request details such as IP address, browser and time of request to
-      operate and secure the service. Those logs never contain your commands or token, because they
-      are sent to GitHub, not to us.
+      The app’s files and the sign-in function run on our hosting provider, Vercel. Like any web
+      host, it may log standard request details such as IP address, browser, time and the address
+      requested to operate and secure the service. With Sign in with GitHub, those addresses include
+      your vault gist’s ID. The function never logs request bodies, commands or tokens.
     </p>
   </section>
 
@@ -158,13 +185,21 @@
       <li>
         <strong>Export</strong> — use <em>Export JSON</em> in the vault to download every command.
       </li>
-      <li><strong>Sign out</strong> — clears the token and the vault from this tab.</li>
+      <li>
+        <strong>Sign out</strong> — clears the vault from this tab, and the token or sign-in cookie.
+        <strong>Sign out and remove access</strong> also revokes GistVault’s authorization on
+        GitHub.
+      </li>
       <li>
         <strong>Revoke the token</strong> — on GitHub under
         <a href="https://github.com/settings/personal-access-tokens" rel="noopener"
           >fine-grained tokens</a
         >
-        or <a href="https://github.com/settings/tokens" rel="noopener">classic tokens</a>.
+        or <a href="https://github.com/settings/tokens" rel="noopener">classic tokens</a>; for Sign
+        in with GitHub, under
+        <a href="https://github.com/settings/apps/authorizations" rel="noopener"
+          >Authorized GitHub Apps</a
+        >.
       </li>
       <li>
         <strong>Delete your data</strong> — delete the gist described as “GistVault data” on
