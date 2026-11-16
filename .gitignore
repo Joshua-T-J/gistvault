@@ -42,3 +42,8 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local secrets for the sign-in function (see .env.example)
+.env
+.env*.local
+.vercel

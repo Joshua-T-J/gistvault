@@ -14,7 +14,7 @@ import { Logo } from '../logo/logo';
           <app-logo />
           <p>
             Save the shell commands you look up twice — in a secret gist on your own GitHub account.
-            No server, no database, no tracking.
+            No database, no tracking.
           </p>
         </div>
 

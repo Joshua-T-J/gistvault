@@ -3,7 +3,7 @@
 <main id="main">
   <section class="hero" aria-labelledby="hero-title">
     <div class="hero-copy">
-      <p class="eyebrow">free · open source · no server</p>
+      <p class="eyebrow">free · open source · no database</p>
       <h1 id="hero-title">The commands you look up twice, saved in your own GitHub.</h1>
       <p class="lead">
         GistVault keeps your shell commands in a secret gist on your account. Tag them, search them,
@@ -12,11 +12,13 @@
       </p>
       <div class="actions">
         <a routerLink="/app/connect" class="btn btn-primary btn-lg">
-          <app-github-mark /> Connect GitHub — it’s free
+          <app-github-mark /> Sign in with GitHub — it’s free
         </a>
         <a routerLink="/security" class="btn btn-outline btn-lg">Read the security model</a>
       </div>
-      <p class="note">Your data never touches our servers. We don’t have any.</p>
+      <p class="note">
+        Your commands pass through our sign-in function but are never stored or logged.
+      </p>
     </div>
 
     <div class="preview" aria-label="Preview of the GistVault app" role="img">
@@ -57,13 +59,13 @@
     <ol class="steps">
       <li class="card">
         <span class="step-no">01</span>
-        <h3>Create a GitHub token</h3>
-        <p>Gists access only, no repositories, and an expiry date. We link you straight to it.</p>
+        <h3>Sign in with GitHub</h3>
+        <p>GistVault asks for gist access only. Prefer a personal access token? That works too.</p>
       </li>
       <li class="card">
         <span class="step-no">02</span>
-        <h3>Paste it into GistVault</h3>
-        <p>We check what it can do and find or create your vault gist.</p>
+        <h3>Get your vault</h3>
+        <p>We find your vault gist, or create a secret one on your account.</p>
       </li>
       <li class="card">
         <span class="step-no">03</span>
@@ -82,9 +84,9 @@
       </p>
       <ul class="security-grid">
         <li>
-          <h3>Token in memory</h3>
+          <h3>Token out of reach</h3>
           <p>
-            Your token stays in this tab’s memory unless you choose otherwise. Never in
+            Your GitHub token sits in an encrypted cookie page scripts can’t read. Never in
             localStorage.
           </p>
         </li>
@@ -98,7 +100,7 @@
         </li>
         <li>
           <h3>Strict content security policy</h3>
-          <p>No third-party scripts, and requests only go to GitHub’s API.</p>
+          <p>No third-party scripts; requests only go to our function and GitHub.</p>
         </li>
       </ul>
       <p class="security-links">

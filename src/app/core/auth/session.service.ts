@@ -68,13 +68,29 @@ export class SessionService {
     await this.#sync.load(gistId);
   }
 
-  async logout(): Promise<void> {
+  /** Restores whichever session exists (tab token or GitHub cookie) and opens the vault. */
+  async resume(): Promise<boolean> {
+    if (!(await this.#auth.restore())) return false;
+    await this.ensureReady();
+    return true;
+  }
+
+  /** Leaves for GitHub's sign-in page; the function brings the user back to `returnTo`. */
+  async signInWithGitHub(returnTo = '/app'): Promise<void> {
+    await this.#auth.login({ returnTo });
+  }
+
+  /** `revoke` also removes GistVault's authorization on GitHub (Sign in with GitHub only). */
+  async logout({ revoke = false }: { revoke?: boolean } = {}): Promise<void> {
     try {
       await this.#sync.flush();
     } finally {
       this.#sync.reset();
-      await this.#auth.logout();
-      this.#store.clear();
+      try {
+        await this.#auth.logout({ revoke });
+      } finally {
+        this.#store.clear();
+      }
     }
   }
 

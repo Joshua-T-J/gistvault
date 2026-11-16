@@ -29,9 +29,10 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.scss"
-            ]
+            "styles": ["src/styles.scss"],
+            "define": {
+              "GV_SIGN_IN": "true"
+            }
           },
           "configurations": {
             "production": {
@@ -47,7 +48,15 @@
                   "maximumError": "12kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": true
+              }
             },
             "development": {
               "optimization": false,
@@ -67,7 +76,10 @@
               "buildTarget": "gistvault:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

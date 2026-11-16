@@ -112,11 +112,7 @@
         </div>
         <div class="field">
           <label class="label" for="cmd-shell">Shell</label>
-          <select id="cmd-shell" class="input" [formField]="editor.shell">
-            @for (shell of shells; track shell.value) {
-              <option [value]="shell.value">{{ shell.label }}</option>
-            }
-          </select>
+          <app-select inputId="cmd-shell" [options]="shells" [formField]="editor.shell" />
         </div>
       </div>
 
@@ -138,9 +134,8 @@
 
     <footer class="modal-footer">
       @if (editingId()) {
-        <button type="button" class="btn btn-ghost danger" (click)="remove()">
-          <app-icon name="trash" [size]="16" />
-          {{ confirmDelete() ? 'Click again to delete' : 'Delete' }}
+        <button type="button" class="btn btn-ghost-danger" (click)="remove()">
+          <app-icon name="trash" [size]="16" /> Delete
         </button>
       }
       <p class="hint shortcut">

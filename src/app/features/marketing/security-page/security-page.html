@@ -1,8 +1,8 @@
 <app-doc-layout
   eyebrow="security"
   heading="Security model"
-  lead="GistVault is designed so that there is nothing on our side to break into. This page explains how your token and commands are handled, what protects them, and — just as important — what can’t."
-  updated="13 November 2026"
+  lead="GistVault has no database, so there is no store of your data on our side to break into. This page explains how your token and commands are handled, what protects them, and — just as important — what can’t."
+  updated="14 November 2026"
   path="/security"
   [toc]="toc"
 >
@@ -22,27 +22,76 @@
     <div
       class="flow"
       role="img"
-      aria-label="Your browser talks directly to api.github.com, which stores your secret gist. There is no GistVault server in between."
+      aria-label="With Sign in with GitHub, your browser talks to the GistVault sign-in function, which adds your token and forwards the request to api.github.com. With a personal access token, your browser talks to api.github.com directly. Either way your commands end up in your secret gist."
     >
       <span>Your browser</span>
       <span class="arrow" aria-hidden="true">→ HTTPS →</span>
+      <span>sign-in function (or none, with a token)</span>
+      <span class="arrow" aria-hidden="true">→</span>
       <span>api.github.com</span>
       <span class="arrow" aria-hidden="true">→</span>
       <span>your secret gist</span>
     </div>
     <ul>
-      <li>There is <strong>no GistVault server or database</strong>. The site is static files.</li>
-      <li>Every request to GitHub is made from your browser over HTTPS.</li>
       <li>
-        The app only makes network requests to <code>api.github.com</code> and, for very large
-        vaults, <code>gist.githubusercontent.com</code>.
+        There is <strong>no GistVault database</strong>. Your commands live only in your gist.
+      </li>
+      <li>
+        With <strong>Sign in with GitHub</strong>, requests go to one small function on our host. It
+        adds your token, forwards the request to GitHub over HTTPS and returns the answer. It never
+        stores or logs commands, request bodies or tokens.
+      </li>
+      <li>
+        With a <strong>personal access token</strong> (Advanced), your browser calls
+        <code>api.github.com</code> directly and the function is never involved.
+      </li>
+      <li>
+        For very large vaults the app also reads files from
+        <code>gist.githubusercontent.com</code>, without sending any token there.
       </li>
       <li>GistVault only ever writes to its own vault gist — never to your other gists.</li>
     </ul>
   </section>
 
+  <section id="sign-in">
+    <h2>Sign in with GitHub</h2>
+    <p>
+      Signing in authorizes the <strong>GistVault GitHub App</strong>, which asks for one
+      permission: <strong>Gists — read and write</strong>. It can’t see your repositories, email
+      address or anything else.
+    </p>
+    <h3>How the token is kept</h3>
+    <ul>
+      <li>
+        GitHub sends the token to our function, never to the page. The function seals it with
+        AES-256-GCM into an <strong>HttpOnly, Secure</strong> cookie, so page scripts — including
+        any injected script — can’t read it.
+      </li>
+      <li>
+        The token expires every <strong>8 hours</strong> and is renewed automatically; the cookie is
+        dropped after 30 days without use.
+      </li>
+      <li>
+        Sign-in uses PKCE and a one-time state value, and only returns you to pages on this site.
+      </li>
+      <li>
+        Every request to the function must carry a custom header and, for changes, come from this
+        site’s own origin, so other websites can’t act on your behalf.
+      </li>
+      <li>
+        The function forwards only the handful of GitHub endpoints GistVault needs. It can’t be used
+        to reach your repositories or the rest of the GitHub API, and it won’t delete a gist unless
+        it’s a published GistVault collection.
+      </li>
+      <li>
+        <strong>Sign out and remove access</strong> revokes the app’s authorization on GitHub, which
+        invalidates every token it issued.
+      </li>
+    </ul>
+  </section>
+
   <section id="token">
-    <h2>Your GitHub token</h2>
+    <h2>Personal access tokens (Advanced)</h2>
     <h3>What it can do</h3>
     <p>
       GitHub can’t limit a token to a single gist. A token with Gists access can
@@ -159,8 +208,8 @@
         script.
       </li>
       <li>
-        A strict Content Security Policy with Trusted Types limits scripts to our own files and
-        network requests to GitHub. It is being rolled out in report-only mode first, then enforced.
+        A strict, enforced Content Security Policy with Trusted Types limits scripts to our own
+        files and network requests to our own function and GitHub.
       </li>
       <li>No third-party scripts, analytics or CDNs; fonts are self-hosted.</li>
       <li>The site can’t be embedded in other sites’ frames (clickjacking protection).</li>
@@ -186,7 +235,8 @@
       <li><strong>Someone who has your gist link</strong> can read the vault.</li>
       <li>
         <strong>A compromised computer or malicious browser extension</strong> can read anything on
-        the page, including the token while the tab is open.
+        the page, including a personal access token while the tab is open. With Sign in with GitHub
+        it can’t read the token, but it can still use your session while the tab is open.
       </li>
       <li>
         <strong>A compromised GitHub account</strong> exposes the gist and lets an attacker create
@@ -203,7 +253,10 @@
   <section id="checklist">
     <h2>Best practices</h2>
     <ul class="check-list">
-      <li>Use a fine-grained token with Gists access only and a short expiry.</li>
+      <li>
+        Prefer Sign in with GitHub. If you use a token, make it fine-grained, with Gists access only
+        and a short expiry.
+      </li>
       <li>Turn on two-factor authentication for your GitHub account.</li>
       <li>Keep real secrets in a password manager, not in commands — use placeholders.</li>
       <li>Don’t tick “Remember for this tab” on shared or public computers.</li>
@@ -216,7 +269,14 @@
     <h2>If your token leaks</h2>
     <ol>
       <li>
-        Revoke it right away:
+        Signed in with GitHub? Use <strong>Sign out and remove access</strong>, or revoke GistVault
+        under
+        <a href="https://github.com/settings/apps/authorizations" rel="noopener"
+          >Authorized GitHub Apps</a
+        >.
+      </li>
+      <li>
+        Using a personal access token? Revoke it right away:
         <a href="https://github.com/settings/personal-access-tokens" rel="noopener"
           >fine-grained tokens</a
         >

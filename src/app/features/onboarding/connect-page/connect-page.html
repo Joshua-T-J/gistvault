@@ -37,22 +37,84 @@
   <section class="card panel" aria-labelledby="step-heading">
     @switch (step()) {
       @case (1) {
-        <h1 id="step-heading" #heading tabindex="-1">Create a GitHub token.</h1>
+        <h1 id="step-heading" #heading tabindex="-1">Connect your GitHub account.</h1>
         <p class="intro">
-          GistVault has no server. It talks to GitHub straight from your browser, using a personal
-          access token that only you hold.
+          GistVault keeps your commands in a secret gist on your own GitHub account. It asks for
+          access to your gists and nothing else.
         </p>
-        <ul class="why">
-          <li>Your commands stay in a secret gist on your own account.</li>
-          <li>We never see your data or your token.</li>
-          <li>The token can manage your gists — and nothing else, if you set it up as below.</li>
-        </ul>
-        <app-token-help [open]="true" />
+
+        @if (signInNotice(); as notice) {
+          <div class="callout callout-error" role="alert">
+            <app-icon name="warning" [size]="20" />
+            <p>{{ notice }}</p>
+          </div>
+        }
+
+        @if (finishingSignIn()) {
+          <p class="signin-status" role="status">
+            <span class="spinner" aria-hidden="true"></span> Opening your vault…
+          </p>
+        } @else if (existingLogin(); as login) {
+          <div class="callout" role="note">
+            <app-icon name="check" [size]="20" />
+            <p>
+              You’re signed in as <strong>&#64;{{ login }}</strong
+              >.
+              <a routerLink="/app">Open your vault</a>
+            </p>
+          </div>
+        }
+
+        @switch (signInAvailability()) {
+          @case ('available') {
+            <div class="signin">
+              <button
+                type="button"
+                class="btn btn-dark btn-lg signin-button"
+                [disabled]="redirecting() || finishingSignIn()"
+                (click)="signInWithGitHub()"
+              >
+                <app-github-mark />
+                {{ redirecting() ? 'Opening GitHub…' : 'Sign in with GitHub' }}
+              </button>
+              <ul class="why">
+                <li>Your commands stay in a secret gist on your own account.</li>
+                <li>
+                  Your GitHub token is kept in an encrypted cookie that page scripts can’t read. It
+                  expires every 8 hours and renews itself.
+                </li>
+                <li>
+                  Commands pass through our sign-in function on their way to GitHub. It never stores
+                  or logs them.
+                  <a routerLink="/security" fragment="sign-in">How sign-in works</a>
+                </li>
+              </ul>
+            </div>
+          }
+          @case ('unknown') {
+            <p class="signin-status" role="status">
+              <span class="spinner" aria-hidden="true"></span> Checking sign-in options…
+            </p>
+          }
+        }
+
+        <details class="advanced" [open]="signInAvailability() === 'unavailable'">
+          <summary>Advanced: use a personal access token</summary>
+          <p>
+            With a token, GistVault talks to GitHub straight from your browser and our sign-in
+            function is never involved. The token stays in this tab and is sent only to
+            <code>api.github.com</code>.
+          </p>
+          <ul class="why">
+            <li>Nothing about you or your commands ever reaches our servers.</li>
+            <li>The token can manage your gists — and nothing else, if you set it up as below.</li>
+          </ul>
+          <app-token-help [open]="signInAvailability() === 'unavailable'" />
+          <button type="button" class="btn btn-outline" (click)="goTo(2)">I have a token</button>
+        </details>
+
         <div class="footer">
           <a routerLink="/" class="btn btn-ghost">Back</a>
-          <button type="button" class="btn btn-dark btn-lg" (click)="goTo(2)">
-            I have a token
-          </button>
         </div>
       }
 

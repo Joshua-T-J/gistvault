@@ -1,7 +1,7 @@
 {
   "name": "gistvault",
   "version": "1.0.0",
-  "description": "Save the shell commands you look up twice — in a secret gist on your own GitHub account.",
+  "description": "Save the shell commands you look up twice \u2014 in a secret gist on your own GitHub account.",
   "license": "MIT",
   "private": true,
   "packageManager": "npm@11.21.0",
@@ -15,7 +15,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "npm run check:security && ng test",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "check:security": "node scripts/check-unsafe-code.mjs"
+    "check:security": "node scripts/check-unsafe-code.mjs",
+    "test:api": "tsc -p api/tsconfig.json --noEmit && vitest run --config vitest.api.config.mts",
+    "dev:api": "node scripts/dev-api.mjs"
   },
   "dependencies": {
     "@angular/common": "^22.2.0",

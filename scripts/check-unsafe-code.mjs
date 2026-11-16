@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const ROOT = 'src';
+const ROOTS = ['src', 'api'];
 const EXTENSIONS = ['.ts', '.html', '.scss'];
 
 const UNSAFE_APIS = [
@@ -19,7 +19,8 @@ const UNSAFE_APIS = [
 ];
 
 // Bidi controls, zero-width characters, BOM, line separators and C0 controls (except tab/LF/CR).
-const HIDDEN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u200B-\u200F\u202A-\u202E\u2028\u2029\u2060-\u2064\u2066-\u2069\uFEFF]/;
+const HIDDEN =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u200B-\u200F\u202A-\u202E\u2028\u2029\u2060-\u2064\u2066-\u2069\uFEFF]/;
 
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
@@ -30,7 +31,7 @@ function* walk(dir) {
 }
 
 const problems = [];
-for (const file of walk(ROOT)) {
+for (const file of ROOTS.flatMap((root) => [...walk(root)])) {
   readFileSync(file, 'utf8')
     .split('\n')
     .forEach((line, i) => {
@@ -40,7 +41,9 @@ for (const file of walk(ROOT)) {
       const hidden = line.match(HIDDEN);
       if (hidden) {
         const cp = hidden[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
-        problems.push(`${file}:${i + 1}  hidden character U+${cp} — write it as an escape (\\u${cp})`);
+        problems.push(
+          `${file}:${i + 1}  hidden character U+${cp} — write it as an escape (\\u${cp})`,
+        );
       }
     });
 }

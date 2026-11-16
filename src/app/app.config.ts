@@ -8,6 +8,8 @@ import {
 } from '@angular/router';
 import { routes } from './app.routes';
 import { AUTH_STRATEGY } from './core/auth/auth-strategy';
+import { ActiveAuthStrategy } from './core/auth/active-auth.strategy';
+import { BffAuthStrategy } from './core/auth/bff-auth.strategy';
 import { PatAuthStrategy } from './core/auth/pat-auth.strategy';
 import {
   apiVersionInterceptor,
@@ -35,7 +37,11 @@ export const appConfig: ApplicationConfig = {
         rateLimitInterceptor,
       ]),
     ),
-    // The only line Option B (Sign in with GitHub) changes.
-    { provide: AUTH_STRATEGY, useClass: PatAuthStrategy },
+    // Sign in with GitHub (BFF cookie) and the Advanced personal-access-token path live side by
+    // side; ActiveAuthStrategy forwards to whichever one the user signed in with.
+    PatAuthStrategy,
+    BffAuthStrategy,
+    ActiveAuthStrategy,
+    { provide: AUTH_STRATEGY, useExisting: ActiveAuthStrategy },
   ],
 };

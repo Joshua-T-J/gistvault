@@ -1,15 +1,17 @@
 import { Component, DOCUMENT, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ConfirmDialog } from './shared/confirm-dialog/confirm-dialog';
 import { Toast } from './shared/toast/toast';
 import { ThemeService } from './shared/theme.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Toast],
+  imports: [RouterOutlet, Toast, ConfirmDialog],
   template: `
     <a class="skip-link" href="#main" (click)="skipToMain($event)">Skip to content</a>
     <router-outlet />
     <app-toast />
+    <app-confirm-dialog />
   `,
 })
 export class App {

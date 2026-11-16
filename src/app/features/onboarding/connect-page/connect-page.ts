@@ -1,11 +1,22 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  computed,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormField, disabled, form, required, submit } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
 import { InvalidTokenFormatError } from '../../../core/auth/auth-strategy';
+import { BffAuthStrategy } from '../../../core/auth/bff-auth.strategy';
 import { ConnectStep, SessionService } from '../../../core/auth/session.service';
 import { daysUntil } from '../../../core/auth/token-probe';
 import { describeError } from '../../../core/github/github-errors';
 import { SeoService } from '../../../core/seo/seo.service';
+import { GithubMark } from '../../../shared/github-mark/github-mark';
 import { Icon } from '../../../shared/icon/icon';
 import { Logo } from '../../../shared/logo/logo';
 import { SiteFooter } from '../../../shared/site-footer/site-footer';
@@ -24,6 +35,18 @@ interface Check {
   detail?: string;
 }
 
+/** Messages for the `signin` query parameter the sign-in function redirects back with. */
+const SIGN_IN_NOTICES: Readonly<Record<string, string>> = {
+  denied: 'Sign-in was cancelled on GitHub. Try again, or use a personal access token below.',
+  expired: 'That sign-in took too long or was started in another browser. Please try again.',
+  failed: 'GitHub sign-in didn’t complete. Please try again.',
+  unavailable:
+    'Sign in with GitHub isn’t set up on this copy of GistVault. Use a personal access token below.',
+};
+
+/** Where Sign in with GitHub returns to, so new users still get the "first command" step. */
+const WELCOME_RETURN = '/app/connect?welcome=1';
+
 const INITIAL_CHECKS: readonly Check[] = [
   { id: 'token', label: 'Token is valid', state: 'pending' },
   { id: 'scopes', label: 'Has Gists access', state: 'pending' },
@@ -32,14 +55,19 @@ const INITIAL_CHECKS: readonly Check[] = [
 
 @Component({
   selector: 'app-connect-page',
-  imports: [RouterLink, FormField, Icon, Logo, TokenHelp, SiteFooter, ThemePicker],
+  imports: [RouterLink, FormField, GithubMark, Icon, Logo, TokenHelp, SiteFooter, ThemePicker],
   templateUrl: './connect-page.html',
   styleUrl: './connect-page.scss',
 })
-export default class ConnectPage {
+export default class ConnectPage implements OnInit {
   readonly #session = inject(SessionService);
   readonly #commands = inject(CommandStore);
   readonly #router = inject(Router);
+  readonly #bff = inject(BffAuthStrategy);
+
+  /** Query parameters set by the sign-in function's redirect. */
+  readonly signin = input<string>();
+  readonly welcome = input<string>();
 
   protected readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('heading');
 
@@ -50,6 +78,15 @@ export default class ConnectPage {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly warnings = signal<string[]>([]);
   protected readonly addingExamples = signal(false);
+
+  protected readonly signInAvailability = this.#bff.availability;
+  protected readonly redirecting = signal(false);
+  protected readonly finishingSignIn = signal(false);
+  protected readonly existingLogin = computed(() => this.#bff.session()?.login ?? null);
+  protected readonly signInError = signal<string | null>(null);
+  protected readonly signInNotice = computed(
+    () => this.signInError() ?? SIGN_IN_NOTICES[this.signin() ?? ''] ?? null,
+  );
 
   protected readonly model = signal({ token: '', remember: false });
   protected readonly tokenForm = form(this.model, (path) => {
@@ -65,7 +102,7 @@ export default class ConnectPage {
   });
 
   protected readonly steps = [
-    { no: 1 as const, label: 'Create a token' },
+    { no: 1 as const, label: 'Connect GitHub' },
     { no: 2 as const, label: 'Paste and verify' },
     { no: 3 as const, label: 'Add your first command' },
   ];
@@ -73,10 +110,45 @@ export default class ConnectPage {
   constructor() {
     inject(SeoService).set({
       title: 'Connect GitHub · GistVault',
-      description: 'Connect GistVault to your GitHub account with a personal access token.',
+      description: 'Connect GistVault to your GitHub account.',
       path: '/app/connect',
       noindex: true,
     });
+  }
+
+  async ngOnInit(): Promise<void> {
+    if (this.welcome()) {
+      await this.#finishGitHubSignIn();
+    } else {
+      await this.#bff.probe();
+    }
+  }
+
+  protected async signInWithGitHub(): Promise<void> {
+    this.redirecting.set(true);
+    await this.#session.signInWithGitHub(WELCOME_RETURN);
+  }
+
+  /**
+   * Back from GitHub: open (or create) the vault. A vault that already has commands goes
+   * straight to /app; an empty one gets the examples step.
+   */
+  async #finishGitHubSignIn(): Promise<void> {
+    this.finishingSignIn.set(true);
+    try {
+      if (!(await this.#session.resume())) {
+        this.signInError.set(SIGN_IN_NOTICES['failed'] ?? null);
+      } else if (this.#commands.commands().length > 0) {
+        // Returning user with commands already: skip the examples step.
+        await this.#router.navigateByUrl('/app', { replaceUrl: true });
+      } else {
+        this.goTo(3);
+      }
+    } catch (err) {
+      this.signInError.set(describeError(err));
+    } finally {
+      this.finishingSignIn.set(false);
+    }
   }
 
   protected goTo(step: WizardStep): void {
