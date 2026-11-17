@@ -24,7 +24,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withComponentInputBinding(),
-      withViewTransitions(),
+      // No cross-fade on the first page load: it shows a blank frame first, which crawlers
+      // (e.g. Google's renderer) can capture as an empty page. In-app navigation still fades.
+      withViewTransitions({ skipInitialTransition: true }),
       withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
     ),
     provideHttpClient(
